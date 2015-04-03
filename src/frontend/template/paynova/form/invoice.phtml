@@ -1,5 +1,8 @@
+<?php
+$_quote = $this->getMethod()->getInfoInstance()->getQuote();
+?>
 <div class="paynova-ssn-container">
-    <input type="text" nam="payment[<?php echo $this->getMethod()->getCode() ?>]">
+    <input type="text" nam="payment[<?php echo $this->getMethod()->getCode() ?>][government_id]">
     <button name="getaddress-button" onclick="paynovaGetAddress(this);" type="button"><?php echo $this->__('Get Address') ?></button>
     <div class="address"></div>
 </div>
@@ -8,13 +11,22 @@
     if (!('paynovaGetAddress' in window)) {
         function paynovaGetAddress(el) {
             var input = $(el).up('div').down('input');
-            var ssn = $(input).getValue();
+            var governmentId = $(input).getValue();
 
-            new Ajax.Request('<?php echo $this->getUrl('made_paynova/utility/getAddress', array('_secure' => true)) ?>',
+            // Default to the quote country code for multi page checkouts,
+            // otherwise use the selected billing country code
+            var countryCode = <?php echo $this->helper('core')->jsonEncode($_quote->getBillingAddress()->getCountryCode()) ?>;
+            var billingCountry = $('billing:country_id');
+            if (billingCountry) {
+                countryCode = $(billingCountry).getValue();
+            }
+
+            new Ajax.Request('<?php echo $this->getUrl('made_paynova/utility/getAddresses', array('_secure' => true)) ?>',
                 {
                     method: 'post',
                     parameters: {
-                        ssn: ssn,
+                        'country_code': countryCode,
+                        'government_id': governmentId,
                         method: window.payment.currentMethod
                     },
                     onComplete: function (transport) {

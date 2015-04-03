@@ -46,22 +46,22 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </secret_key>
-                        <api_live_url translate="label">
+                        <api_url_live translate="label">
                             <label>API Url (Live)</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>6</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                        </api_live_url>
-                        <api_test_url translate="label">
+                        </api_url_live>
+                        <api_url_test translate="label">
                             <label>API Url (Test)</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>7</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
-                        </api_test_url>
+                        </api_url_test>
                     </fields>
                 </made_paynova_general>
                 <made_paynova_invoice translate="label" module="made_paynova">

@@ -47,6 +47,10 @@
     </frontend>
     <default>
         <payment>
+            <made_paynova_general>
+                <test>1</test>
+                <api_url_test><![CDATA[https://extdev01api.paynova.com/]]></api_url_test>
+            </made_paynova_general>
             <made_paynova_invoice>
                 <active>0</active>
                 <title>Paynova Invoice</title>
