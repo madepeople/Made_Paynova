@@ -1,6 +1,8 @@
 <?php
 
 /**
+ * Paynova Payment Module
+ *
  * @author jonathan@madepeople.se
  */
 class Made_Paynova_Model_Payment_Abstract
