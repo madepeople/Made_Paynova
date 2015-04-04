@@ -264,17 +264,6 @@ class Made_Paynova_Model_Payment_Abstract
     }
 
     /**
-     * Authorize a new payment
-     *
-     * @param Varien_Object $payment
-     * @param float $amount
-     */
-    public function authorize(Varien_Object $payment, $amount)
-    {
-        die;
-    }
-
-    /**
      * Get addresses for the supplied governemnt ID and country code.
      *
      * @param $countryCode
