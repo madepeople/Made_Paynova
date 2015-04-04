@@ -30,8 +30,42 @@ $_quote = $this->getMethod()->getInfoInstance()->getQuote();
                         method: window.payment.currentMethod
                     },
                     onComplete: function (transport) {
-                        var address = $(input).up('div').down('div');
-                        $(address).update(transport.responseText);
+                        var obj = transport.responseJSON;
+                        var addressDiv = $(input).up('div').down('div');
+                        if (obj.status.isSuccess === false) {
+                            var html = '';
+                            for (var i = 0; i < obj.status.errors.length; i++) {
+                                html += obj.status.errors[i].message + '<br>';
+                            }
+                            $(addressDiv).update(html);
+                        } else {
+                            var addressFieldMap = {
+                                'address': [
+                                    ['city', 'billing:city'],
+                                    ['countryCode', 'billing:country_id'],
+                                    ['postalCode', 'billing:zip'],
+                                    ['regionCode', 'billing:region_id'],
+                                    ['street1', 'billing:street1']
+                                ],
+                                'name': [
+                                    ['company', 'billing:company'],
+                                    ['firstName', 'billing:firstname'],
+                                    ['lastName', 'billing:lastname']
+                                ]
+                            };
+                            var address = obj.addresses[0];
+                            for (var key in addressFieldMap) {
+                                for (var i = 0; i < addressFieldMap[key].length; i++) {
+                                    var fieldPair = addressFieldMap[key][i];
+                                    var paynovaKey = fieldPair[0];
+                                    var htmlField = fieldPair[1];
+                                    var paynovaValue = address[key][paynovaKey];
+                                    if ($(htmlField)) {
+                                        $(htmlField).setValue(paynovaValue);
+                                    }
+                                }
+                            }
+                        }
                     }
                 });
         };
