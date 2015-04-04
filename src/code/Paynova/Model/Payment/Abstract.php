@@ -85,7 +85,8 @@ class Made_Paynova_Model_Payment_Abstract
             Mage::throwException('An error occurred when communicating with Paynova: ' . $response->getMessage() . ' (' . $response->getStatus() . ')');
         }
 
-        $result = $response->getBody();
+        $resultJson = $response->getBody();
+        $result = Mage::helper('core')->jsonDecode($resultJson);
         return $result;
     }
 
