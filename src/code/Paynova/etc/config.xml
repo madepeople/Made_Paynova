@@ -55,7 +55,7 @@
                 <active>0</active>
                 <title>Paynova Invoice</title>
                 <test>1</test>
-                <payment_action>authorize</payment_action>
+                <payment_action>order</payment_action>
                 <allowspecific>0</allowspecific>
                 <model>made_paynova/payment_invoice</model>
             </made_paynova_invoice>

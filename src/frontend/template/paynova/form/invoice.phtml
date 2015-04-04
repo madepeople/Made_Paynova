@@ -2,7 +2,7 @@
 $_quote = $this->getMethod()->getInfoInstance()->getQuote();
 ?>
 <div class="paynova-ssn-container">
-    <input type="text" nam="payment[<?php echo $this->getMethod()->getCode() ?>][government_id]">
+    <input type="text" name="payment[<?php echo $this->getMethod()->getCode() ?>][government_id]">
     <button name="getaddress-button" onclick="paynovaGetAddress(this);" type="button"><?php echo $this->__('Get Address') ?></button>
     <div class="address"></div>
 </div>
@@ -43,7 +43,7 @@ $_quote = $this->getMethod()->getInfoInstance()->getQuote();
                                 'address': [
                                     ['city', 'billing:city'],
                                     ['countryCode', 'billing:country_id'],
-                                    ['postalCode', 'billing:zip'],
+                                    ['postalCode', 'billing:postcode'],
                                     ['regionCode', 'billing:region_id'],
                                     ['street1', 'billing:street1']
                                 ],
