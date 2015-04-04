@@ -77,6 +77,7 @@ class Made_Paynova_Model_Payment_Abstract
 
         $username = $this->getGeneralConfigData('merchant_id');
         $password = $this->getGeneralConfigData('password');
+        $password = Mage::helper('core')->decrypt($password);
         $httpClient->setAuth($username, $password, Zend_Http_Client::AUTH_BASIC);
 
         $response = $httpClient->request();
