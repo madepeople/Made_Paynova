@@ -24,9 +24,9 @@ class Made_Paynova_Model_Payment_invoice
         $parameters = array(
             'AuthorizationType' => 'InvoicePayment',
             'TotalAmount' => $amount,
-            'PaymentMethodId' => 311,
-            'PaymentMethodProductId' => 'DirectInvoice',
-            'PaymentChannelId' => 1,
+            'PaymentMethodId' => 311, // What's this?
+            'PaymentMethodProductId' => 'DirectInvoice', // What's this?
+            'PaymentChannelId' => 1, // What's this?
         );
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
