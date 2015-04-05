@@ -268,6 +268,7 @@ class Made_Paynova_Model_Payment_Abstract
      *
      * @param $countryCode
      * @param $governmentId
+     * @return array
      */
     public function getAddresses($countryCode, $governmentId)
     {
@@ -277,6 +278,27 @@ class Made_Paynova_Model_Payment_Abstract
             $governmentId
         ));
         $result = $this->_call($method);
+        return $result;
+    }
+
+    /**
+     * Returns the available Paynova payment methods for the supplied quote
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @return array
+     */
+    public function getPaymentOptions(Mage_Sales_Model_Quote $quote)
+    {
+        $method = 'paymentoptions';
+        $parameters = array(
+            'TotalAmount' => $quote->getGrandTotal(),
+            'CurrencyCode' => $quote->getQuoteCurrencyCode(),
+            'PaymentChannelId' => 1, // What's this?
+            'CountryCode' => $quote->getBillingAddress()->getCountryId(),
+            'LanguageCode' => 'SWE', // What's this?
+        );
+
+        $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
         return $result;
     }
 
