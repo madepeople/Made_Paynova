@@ -12,6 +12,7 @@ class Made_Paynova_Model_Payment_Invoice
     protected $_code = 'made_paynova_invoice';
     protected $_formBlockType = 'made_paynova/payment_form_invoice';
 
+    protected $_paynovaGroup = 'invoice';
     private $_paymentMethodId = 311;
 
     /**

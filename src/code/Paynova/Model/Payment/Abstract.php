@@ -25,6 +25,8 @@ class Made_Paynova_Model_Payment_Abstract
     protected $_canUseForMultishipping = true;
     protected $_canManageRecurringProfiles = false;
 
+    protected $_paynovaGroup = null;
+
     /**
      * This saves our extra custom data in the database so we can re-use it
      * when the customer for instance enters a SSN and then goes away and back
@@ -508,7 +510,45 @@ class Made_Paynova_Model_Payment_Abstract
         );
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
+        if ($result['status']['isSuccess'] === false) {
+            Mage::log(var_export($result, true), null, 'paynova.log');
+            Mage::throwException('Paynova getPaymentOptions Failed: ' . $result['status']['statusMessage']);
+        }
+        return $result['availablePaymentMethods'];
+    }
+
+    /**
+     * Returns the available payment options for the current quote and method
+     *
+     * @param Mage_Sales_Model_Quote $quote
+     * @return array
+     */
+    public function getAvailablePaymentOptions(Mage_Sales_Model_Quote $quote)
+    {
+        $paymentOptions = $this->getPaymentOptions($quote);
+        $paynovaGroup = $this->getPaynovaGroup();
+        $result = array();
+        foreach ($paymentOptions as $option) {
+            if ($paynovaGroup === $option['group']['key']) {
+                $result[] = $option;
+            }
+        }
         return $result;
+    }
+
+    /**
+     * The Paynova group is used to determine which payment options are available
+     * for the current method.
+     *
+     * @return string
+     * @throws Mage_Core_Exception
+     */
+    public function getPaynovaGroup()
+    {
+        if ($this->_paynovaGroup === null) {
+            Mage::throwException('Paynova Group not set for ' . get_class($this));
+        }
+        return $this->_paynovaGroup;
     }
 
 }

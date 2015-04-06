@@ -1,0 +1,26 @@
+<?php
+$_method = $this->getMethod();
+$_quote = $_method->getInfoInstance()->getQuote();
+$_paymentOptions = $_method->getAvailablePaymentOptions($_quote);
+?>
+<ul class="form-list" id="payment_form_<?php echo $_method->getCode() ?>">
+    <li>
+        Paynova Card Payment, this is where we loop over all available card methods and
+        display them as radio button choices
+    </li>
+    <?php if (count($_paymentOptions) === 1): $_option = $_paymentOptions[0]; ?>
+        <li>
+            <input type="hidden" name="payment[<?php echo $_method->getCode() ?>][paymentMethodId]" value="<?php echo $_option['paymentMethodId'] ?>">
+            <?php echo $_option['displayName'] ?>
+        </li>
+    <?php else: ?>
+        <?php foreach ($_paymentOptions as $_option): ?>
+            <li>
+                <label>
+                    <input type="radio" name="payment[<?php echo $_method->getCode() ?>][paymentMethodId]" value="<?php echo $_option['paymentMethodId'] ?>">
+                    <?php echo $_option['displayName'] ?>
+                </label>
+            </li>
+        <?php endforeach ?>
+    <?php endif ?>
+</ul>

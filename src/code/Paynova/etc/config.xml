@@ -59,6 +59,30 @@
                 <allowspecific>0</allowspecific>
                 <model>made_paynova/payment_invoice</model>
             </made_paynova_invoice>
+            <made_paynova_installment>
+                <active>0</active>
+                <title>Paynova Installment</title>
+                <test>1</test>
+                <payment_action>authorize</payment_action>
+                <allowspecific>0</allowspecific>
+                <model>made_paynova/payment_installment</model>
+            </made_paynova_installment>
+            <made_paynova_card>
+                <active>0</active>
+                <title>Paynova Card</title>
+                <test>1</test>
+                <payment_action>order</payment_action>
+                <allowspecific>0</allowspecific>
+                <model>made_paynova/payment_card</model>
+            </made_paynova_card>
+            <made_paynova_online_bank>
+                <active>0</active>
+                <title>Paynova Online Bank</title>
+                <test>1</test>
+                <payment_action>order</payment_action>
+                <allowspecific>0</allowspecific>
+                <model>made_paynova/payment_onlineBank</model>
+            </made_paynova_online_bank>
         </payment>
     </default>
 </config>

@@ -11,6 +11,22 @@ $_paymentOptions = $_method->getAvailablePaymentOptions($_quote);
             <div class="address"></div>
         </div>
     </li>
+
+    <?php if (count($_paymentOptions) === 1): $_option = $_paymentOptions[0]; ?>
+        <li>
+            <input type="hidden" name="payment[<?php echo $_method->getCode() ?>][paymentMethodProductId]" value="<?php echo $_option['paymentMethodProductId'] ?>">
+            <?php echo $_option['displayName'] ?>
+        </li>
+    <?php else: ?>
+        <?php foreach ($_paymentOptions as $_option): ?>
+            <li>
+                <label>
+                    <input type="radio" name="payment[<?php echo $_method->getCode() ?>][paymentMethodProductId]" value="<?php echo $_option['paymentMethodProductId'] ?>">
+                    <?php echo $_option['displayName'] ?>
+                </label>
+            </li>
+        <?php endforeach ?>
+    <?php endif ?>
 </ul>
 <script>
     if (!('paynovaGetAddress' in window)) {
