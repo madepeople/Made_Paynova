@@ -1,6 +1,6 @@
 <?php
 
-class Made_Paynova_Model_Payment_invoice
+class Made_Paynova_Model_Payment_Invoice
     extends Made_Paynova_Model_Payment_Abstract
 {
     protected $_code = 'made_paynova_invoice';
