@@ -2,7 +2,7 @@
 $_quote = $this->getMethod()->getInfoInstance()->getQuote();
 ?>
 <div class="paynova-ssn-container">
-    <input type="text" name="payment[<?php echo $this->getMethod()->getCode() ?>][government_id]">
+    <input type="text" name="payment[<?php echo $this->getMethod()->getCode() ?>][government_id]" value="<?php echo $this->getAdditionalData('government_id') ?>">
     <button name="getaddress-button" onclick="paynovaGetAddress(this);" type="button"><?php echo $this->__('Get Address') ?></button>
     <div class="address"></div>
 </div>
