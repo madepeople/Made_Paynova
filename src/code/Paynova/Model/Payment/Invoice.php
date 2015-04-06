@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Paynova Invoice implementation. Doesn't differ a lot from the standard flow,
+ * except for authorize
+ *
+ * @author jonathan@madepeople.se
+ */
 class Made_Paynova_Model_Payment_Invoice
     extends Made_Paynova_Model_Payment_Abstract
 {
