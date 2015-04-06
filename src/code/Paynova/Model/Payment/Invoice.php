@@ -33,6 +33,7 @@ class Made_Paynova_Model_Payment_invoice
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
         if ($result['status']['isSuccess'] === false) {
+            Mage::log(var_export($result, true), null, 'paynova.log');
             Mage::throwException('Paynova Authorization Failed: ' . $result['status']['statusMessage']);
         }
 

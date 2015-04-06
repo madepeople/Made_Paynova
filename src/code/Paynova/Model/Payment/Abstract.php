@@ -160,7 +160,7 @@ class Made_Paynova_Model_Payment_Abstract
      */
     protected function _getLineItemsArray(Mage_Sales_Model_Abstract $object)
     {
-        $allItemsData = array();
+        $lineItems = array();
         foreach ($object->getAllItems() as $item) {
             if ($item->getParentItemId()) {
                 // Only use visible items
@@ -192,7 +192,7 @@ class Made_Paynova_Model_Payment_Abstract
                 'totalLineTaxAmount' => $item->getTaxAmount(),
                 'totalLineAmount' => $item->getRowTotalInclTax()
             );
-            $allItemsData[] = $itemData;
+            $lineItems[] = $itemData;
         }
 
         if ($object->getShippingAmount()) {
@@ -217,7 +217,7 @@ class Made_Paynova_Model_Payment_Abstract
             );
         }
 
-        return $allItemsData;
+        return $lineItems;
     }
 
     /**
@@ -311,6 +311,7 @@ class Made_Paynova_Model_Payment_Abstract
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
         if ($result['status']['isSuccess'] === false) {
+            Mage::log(var_export($result, true), null, 'paynova.log');
             Mage::throwException('Paynova Payment Failed: ' . $result['status']['statusMessage']);
         }
 
@@ -355,6 +356,7 @@ class Made_Paynova_Model_Payment_Abstract
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
         if ($result['status']['isSuccess'] === false) {
+            Mage::log(var_export($result, true), null, 'paynova.log');
             Mage::throwException('Paynova Authorization Failed: ' . $result['status']['statusMessage']);
         }
 
@@ -402,6 +404,7 @@ class Made_Paynova_Model_Payment_Abstract
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
         if ($result['status']['isSuccess'] === false) {
+            Mage::log(var_export($result, true), null, 'paynova.log');
             Mage::throwException('Paynova Authorization Failed: ' . $result['status']['statusMessage']);
         }
 
@@ -410,6 +413,64 @@ class Made_Paynova_Model_Payment_Abstract
 
         return $this;
     }
+
+    /**
+     * Void payment abstract method
+     *
+     * @param Varien_Object $payment
+     *
+     * @return Mage_Payment_Model_Abstract
+     */
+    public function void(Varien_Object $payment)
+    {
+        $parentTransactionId = $payment->getParentTransactionId();
+        $parentTransaction = $payment->lookupTransaction($parentTransactionId);
+        $additionalInfo = $parentTransaction->getTransactionAdditionalInfo(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS);
+
+        $paynovaTransactionId = $additionalInfo['transactionId'];
+        $paynovaOrderId = $parentTransaction->getId();
+
+        $method = join('/', array(
+            'orders',
+            $paynovaOrderId,
+            'transactions',
+            $paynovaTransactionId,
+            'refund',
+            $payment->getOrder()->getGrandTotal()
+        ));
+
+        $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
+        if ($result['status']['isSuccess'] === false) {
+            Mage::log(var_export($result, true), null, 'paynova.log');
+            Mage::throwException('Paynova Authorization Failed: ' . $result['status']['statusMessage']);
+        }
+
+        $payment->setTransactionAdditionalInfo(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS,
+            $this->_flattenArray($result));
+
+        return $this;
+    }
+
+    /**
+     * Cancel payment abstract method
+     *
+     * @param Varien_Object $payment
+     *
+     * @return Mage_Payment_Model_Abstract
+     */
+    public function cancel(Varien_Object $payment)
+    {
+        try {
+            // When we cancel an order we also want to void any open authorization
+            $this->void($payment);
+        } catch (Exception $e) {
+            // But we should be able to cancel orders anyway (or should we?)
+            Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
+            Mage::logException($e);
+        }
+        return $this;
+    }
+
 
     /**
      * Get addresses for the supplied governemnt ID and country code.
