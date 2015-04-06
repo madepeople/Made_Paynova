@@ -8,6 +8,9 @@
 class Made_Paynova_Model_Payment_Abstract
     extends Mage_Payment_Model_Method_Abstract
 {
+    const PAYMENT_CHANNEL_WEB = 1;
+    const PAYMENT_CHANNEL_MAIL_TELEPHONE = 2;
+    const PAYMENT_CHANNEL_RECURRING = 7;
 
     protected $_isGateway = false;
     protected $_canOrder = true;
@@ -86,6 +89,40 @@ class Made_Paynova_Model_Payment_Abstract
         return $testMode;
     }
 
+    /**
+     * Flatten array and concatenate keys
+     *
+     * @see http://stackoverflow.com/a/9546215/533801
+     * @param $array
+     * @param string $prefix
+     * @return array
+     */
+    protected final function _flattenArray($array, $prefix = '')
+    {
+        $result = array();
+        foreach ($array as $key => $value) {
+            if (is_object($value)) {
+                $value = (array)$value;
+            }
+            if (is_array($value)) {
+                $result = $result + $this->_flattenArray($value, $prefix . $key . '.');
+            } else {
+                $result[$prefix . $key] = $value;
+            }
+        }
+        return $result;
+    }
+
+    /**
+     * Perform a REST API call to Paynova
+     *
+     * @param $action
+     * @param null|array $parameters
+     * @param string $method
+     * @return mixed
+     * @throws Mage_Core_Exception
+     * @throws Zend_Http_Client_Exception
+     */
     protected function _call($action, $parameters = null, $method = Zend_Http_Client::GET)
     {
         $action = '/' . preg_replace('#^/+#', '', $action);
@@ -119,19 +156,36 @@ class Made_Paynova_Model_Payment_Abstract
     /**
      * Returns an array of lineItems data
      *
-     * @param $items
+     * @param $object  Order, invoice or credit memo
      */
-    protected function _getLineItemsArray($items)
+    protected function _getLineItemsArray(Mage_Sales_Model_Abstract $object)
     {
         $allItemsData = array();
-        foreach ($items as $item) {
+        foreach ($object->getAllItems() as $item) {
+            if ($item->getParentItemId()) {
+                // Only use visible items
+                continue;
+            }
+
+            switch (get_class($object)) {
+                case 'Mage_Sales_Model_Order':
+                    $qty = $item->getQtyOrdered();
+                    break;
+                case 'Mage_Sales_Model_Order_Invoice':
+                    $qty = $item->getQtyInvoiced();
+                    break;
+                case 'Mage_Sales_Model_Order_Creditmemo':
+                    $qty = $item->getQtyRefunded();
+                    break;
+            }
+
             $itemData = array(
                 'id' => $item->getId(),
                 'articleNumber' => $item->getSku(),
                 'name' => $item->getName(),
                 'description' => '',
                 'productUrl' => '',
-                'quantity' => $item->getQtyOrdered(),
+                'quantity' => $qty,
                 'unitMeasure' => 'unit',
                 'unitAmountExcludingTax' => $item->getPrice(),
                 'taxPercent' => $item->getTaxPercent(),
@@ -140,6 +194,29 @@ class Made_Paynova_Model_Payment_Abstract
             );
             $allItemsData[] = $itemData;
         }
+
+        if ($object->getShippingAmount()) {
+            $store = $object->getStore();
+            $taxCalculation = Mage::getModel('tax/calculation');
+            $request = $taxCalculation->getRateRequest(null, null, null, $store);
+            $taxRateId = Mage::getStoreConfig('tax/classes/shipping_tax_class', $store);
+            $taxPercent = $taxCalculation->getRate($request->setProductClassId($taxRateId));
+
+            $lineItems[] = array(
+                'id' => 'shipping',
+                'articleNumber' => $object->getShippingMethod(),
+                'name' => $object->getShippingDescription(),
+                'description' => '',
+                'productUrl' => '',
+                'quantity' => 1,
+                'unitMeasure' => 'unit',
+                'unitAmountExcludingTax' => $object->getShippingAmount(),
+                'taxPercent' => $taxPercent,
+                'totalLineTaxAmount' => $object->getShippingTaxAmount(),
+                'totalLineAmount' => $object->getShippingInclTax()
+            );
+        }
+
         return $allItemsData;
     }
 
@@ -229,28 +306,7 @@ class Made_Paynova_Model_Payment_Abstract
             }
         }
 
-        $lineItems = $this->_getLineItemsArray($order->getAllVisibleItems());
-        if ($order->getShippingAmount()) {
-            $store = $order->getStore();
-            $taxCalculation = Mage::getModel('tax/calculation');
-            $request = $taxCalculation->getRateRequest(null, null, null, $store);
-            $taxRateId = Mage::getStoreConfig('tax/classes/shipping_tax_class', $store);
-            $taxPercent = $taxCalculation->getRate($request->setProductClassId($taxRateId));
-
-            $lineItems[] = array(
-                'id' => 'shipping',
-                'articleNumber' => $order->getShippingMethod(),
-                'name' => $order->getShippingDescription(),
-                'description' => '',
-                'productUrl' => '',
-                'quantity' => 1,
-                'unitMeasure' => 'unit',
-                'unitAmountExcludingTax' => $order->getShippingAmount(),
-                'taxPercent' => $taxPercent,
-                'totalLineTaxAmount' => $order->getShippingTaxAmount(),
-                'totalLineAmount' => $order->getShippingInclTax()
-            );
-        }
+        $lineItems = $this->_getLineItemsArray($order);
         $parameters['lineItems'] = $lineItems;
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
@@ -259,6 +315,98 @@ class Made_Paynova_Model_Payment_Abstract
         }
 
         $payment->setTransactionId($result['orderId']);
+
+        return $this;
+    }
+
+    /**
+     * Capture the authorized invoice order
+     *
+     * @param Varien_Object $payment
+     * @param float $amount
+     */
+    public function capture(Varien_Object $payment, $amount)
+    {
+        $parentTransactionId = $payment->getParentTransactionId();
+        $parentTransaction = $payment->lookupTransaction($parentTransactionId);
+        $additionalInfo = $parentTransaction->getTransactionAdditionalInfo(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS);
+
+        $paynovaTransactionId = $additionalInfo['transactionId'];
+        $paynovaOrderId = $parentTransaction->getId();
+
+        $method = join('/', array(
+            'orders',
+            $paynovaOrderId,
+            'transactions',
+            $paynovaTransactionId,
+            'finalize',
+            $amount
+        ));
+
+        $invoice = $payment->getCreatedInvoice();
+
+        $parameters = array(
+            'orderId' => $paynovaOrderId,
+            'invoiceId' => $invoice->getIncrementId()
+        );
+
+        $lineItems = $this->_getLineItemsArray($invoice);
+        $parameters['lineItems'] = $lineItems;
+
+        $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
+        if ($result['status']['isSuccess'] === false) {
+            Mage::throwException('Paynova Authorization Failed: ' . $result['status']['statusMessage']);
+        }
+
+        $payment->setTransactionAdditionalInfo(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS,
+            $this->_flattenArray($result));
+
+        return $this;
+    }
+
+    /**
+     * Refund specified amount for payment
+     *
+     * @param Varien_Object $payment
+     * @param float $amount
+     *
+     * @return Mage_Payment_Model_Abstract
+     */
+    public function refund(Varien_Object $payment, $amount)
+    {
+        $parentTransactionId = $payment->getParentTransactionId();
+        $parentTransaction = $payment->lookupTransaction($parentTransactionId);
+        $additionalInfo = $parentTransaction->getTransactionAdditionalInfo(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS);
+
+        $paynovaTransactionId = $additionalInfo['transactionId'];
+        $paynovaOrderId = $parentTransaction->getId();
+
+        $method = join('/', array(
+            'orders',
+            $paynovaOrderId,
+            'transactions',
+            $paynovaTransactionId,
+            'refund',
+            $amount
+        ));
+
+        $creditmemo = $payment->getCreditmemo();
+
+        $parameters = array(
+            'orderId' => $paynovaOrderId,
+            'invoiceId' => $creditmemo->getIncrementId()
+        );
+
+        $lineItems = $this->_getLineItemsArray($creditmemo);
+        $parameters['lineItems'] = $lineItems;
+
+        $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
+        if ($result['status']['isSuccess'] === false) {
+            Mage::throwException('Paynova Authorization Failed: ' . $result['status']['statusMessage']);
+        }
+
+        $payment->setTransactionAdditionalInfo(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS,
+            $this->_flattenArray($result));
 
         return $this;
     }

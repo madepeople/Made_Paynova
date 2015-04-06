@@ -6,6 +6,8 @@ class Made_Paynova_Model_Payment_invoice
     protected $_code = 'made_paynova_invoice';
     protected $_formBlockType = 'made_paynova/payment_form_invoice';
 
+    private $_paymentMethodId = 311;
+
     /**
      * Authorize a new payment
      *
@@ -24,9 +26,9 @@ class Made_Paynova_Model_Payment_invoice
         $parameters = array(
             'AuthorizationType' => 'InvoicePayment',
             'TotalAmount' => $amount,
-            'PaymentMethodId' => 311, // What's this?
+            'PaymentMethodId' => $this->_paymentMethodId,
             'PaymentMethodProductId' => 'DirectInvoice', // What's this?
-            'PaymentChannelId' => 1, // What's this?
+            'PaymentChannelId' => self::PAYMENT_CHANNEL_WEB,
         );
 
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
@@ -36,9 +38,8 @@ class Made_Paynova_Model_Payment_invoice
 
         $payment->setIsTransactionClosed(false);
         $payment->setTransactionAdditionalInfo(Mage_Sales_Model_Order_Payment_Transaction::RAW_DETAILS,
-            $result);
+            $this->_flattenArray($result));
 
         return $this;
     }
-
 }
