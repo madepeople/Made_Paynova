@@ -185,7 +185,7 @@ class Made_Paynova_Model_Payment_Abstract
                 'id' => $item->getId(),
                 'articleNumber' => $item->getSku(),
                 'name' => $item->getName(),
-                'description' => '',
+                'description' => $item->getName(),
                 'productUrl' => '',
                 'quantity' => $qty,
                 'unitMeasure' => 'unit',
@@ -208,7 +208,7 @@ class Made_Paynova_Model_Payment_Abstract
                 'id' => 'shipping',
                 'articleNumber' => $object->getShippingMethod(),
                 'name' => $object->getShippingDescription(),
-                'description' => '',
+                'description' => $object->getShippingDescription(),
                 'productUrl' => '',
                 'quantity' => 1,
                 'unitMeasure' => 'unit',
@@ -240,7 +240,6 @@ class Made_Paynova_Model_Payment_Abstract
         ));
 
         $billingAddress = $order->getBillingAddress();
-        $shippingAddress = $order->getShippingAddress();
         $parameters = array(
             'orderNumber' => $order->getIncrementId(),
             'currencyCode' => $order->getOrderCurrencyCode(),
@@ -279,27 +278,9 @@ class Made_Paynova_Model_Payment_Abstract
                     'countryCode' => $billingAddress->getCountryId()
                 ),
             ),
-            'shipTo' => array(
-                'name' => array(
-                    'companyName' => $shippingAddress->getCompany(),
-                    'title' => $shippingAddress->getTitle(),
-                    'firstName' => $shippingAddress->getFirstname(),
-                    'middleNames' => $shippingAddress->getMiddlename(),
-                    'lastName' => $shippingAddress->getLastname(),
-                    'suffix' => $shippingAddress->getSuffix(),
-                ),
-                'address' => array(
-                    'street1' => $shippingAddress->getStreet(1),
-                    'street2' => $shippingAddress->getStreet(2),
-                    'street3' => $shippingAddress->getStreet(3),
-                    'street4' => $shippingAddress->getStreet(4),
-                    'city' => $shippingAddress->getCity(),
-                    'postalCode' => $shippingAddress->getPostcode(),
-                    'regionCode' => $shippingAddress->getRegionId(),
-                    'countryCode' => $shippingAddress->getCountryId()
-                ),
-            ),
         );
+
+        $parameters['shipTo'] = $parameters['billTo'];
 
         $additionalInformation = $payment->getAdditionalInformation();
         if (isset($additionalInformation[$this->getCode()])) {
@@ -441,6 +422,7 @@ class Made_Paynova_Model_Payment_Abstract
             $payment->getOrder()->getGrandTotal()
         ));
 
+        $parameters = null;
         $result = $this->_call($method, $parameters, Zend_Http_Client::POST);
         if ($result['status']['isSuccess'] === false) {
             Mage::log(var_export($result, true), null, 'paynova.log');
